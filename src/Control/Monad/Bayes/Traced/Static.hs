@@ -19,6 +19,7 @@ module Control.Monad.Bayes.Traced.Static (
   mh
 ) where
 
+import qualified Control.Category as C
 import Control.Monad.Trans
 import Control.Applicative (liftA2)
 
@@ -94,3 +95,18 @@ data ImportanceLens p m a b = ImportanceLens {
   sample :: (p, a) -> Traced m b,
   update :: (p, a, Traced m b) -> Traced m (p, a)
 }
+
+instance (Monoid p, MonadInfer m) => C.Category (ImportanceLens p m) where
+  id = ImportanceLens {
+    parameters = mempty,
+    sample = \(p, a) -> return a,
+    update = \(p, a, mb) -> return (p, a)
+  }
+  cb . ca = ImportanceLens {
+    parameters = parameters ca <> parameters cb,
+    sample = \(p, a) -> sample ca (p, a) >>= (\b -> sample cb (p, b)),
+    update = \(p, a, mc) -> do
+      b <- sample ca (p, a)
+      (p', b') <- update cb (p, b, mc)
+      update ca (p', a, return b')
+  }
