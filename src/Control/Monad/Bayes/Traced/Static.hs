@@ -88,3 +88,9 @@ mh n (Traced m d) = fmap (map output) t where
     ~(x:xs) <- f (k-1)
     y <- mhTrans m x
     return (y:x:xs)
+
+data ImportanceLens p m a b = ImportanceLens {
+  parameters :: p,
+  sample :: (p, a) -> Traced m b,
+  update :: (p, a, Traced m b) -> Traced m (p, a)
+}
